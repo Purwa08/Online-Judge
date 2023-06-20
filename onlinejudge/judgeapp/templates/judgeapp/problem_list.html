@@ -1,0 +1,32 @@
+<!-- templates/problem_list.html -->
+<!-- 
+{% for problem in problems %}
+    <div>
+        <h3>{{ problem.title }}</h3>
+        <p>{{ problem.description }}</p>
+        <p>Difficulty: {{ problem.difficulty }}</p>
+    </div>
+{% empty %}
+    <p>No problems available.</p>
+{% endfor %} -->
+
+
+<!-- templates/problem_list.html -->
+
+<h2>Problem List</h2>
+
+<ul>
+    {% for problem in problems %}
+        <li>
+            <h3>{{ problem.title }}</h3>
+            <p>{{ problem.description }}</p>
+            <p>Difficulty: {{ problem.difficulty }}</p>
+            <!-- Additional problem details as needed -->
+            <form method="GET" action="{% url 'problem_detail' problem.id %}">
+                <button type="submit">Submit</button>
+            </form>
+        </li>
+    {% empty %}
+        <li>No problems available.</li>
+    {% endfor %}
+</ul>

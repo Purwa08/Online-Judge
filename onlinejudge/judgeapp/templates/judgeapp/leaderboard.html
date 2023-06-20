@@ -1,0 +1,16 @@
+<!-- templates/leaderboard.html -->
+
+<h2>Leaderboard</h2>
+
+<ul>
+    {% for submission in submissions %}
+        <li>
+            <strong>User:</strong> {{ submission.user.username }}<br>
+            <strong>Problem:</strong> {{ submission.problem.title }}<br>
+            <strong>Verdict:</strong> {{ submission.get_verdict_display }}
+        </li>
+    {% empty %}
+        <li>No submissions available.</li>
+    {% endfor %}
+</ul>
+
