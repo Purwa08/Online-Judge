@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}Online Judge{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="{% url 'problem_list' %}">Problem List</a></li>
+                <li><a href="{% url 'submission_list' %}">My Submissions</a></li>
+                <!-- Add other navigation links as needed -->
+            </ul>
+        </nav>
+    </header>
+
+    <div class="content">
+        {% block content %}
+        <!-- Default content here -->
+        {% endblock %}
+    </div>
+
+    <footer>
+        <!-- Footer content here -->
+    </footer>
+</body>
+</html>
