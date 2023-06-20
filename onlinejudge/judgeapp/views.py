@@ -76,7 +76,7 @@ def problem_detail(request, problem_id):
 import subprocess
 
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Problem, Submission, Testcase
+from .models import Problem, Submission, TestCase
 
 def submit_code(request, problem_id):
     problem = get_object_or_404(Problem, id=problem_id)
@@ -85,7 +85,7 @@ def submit_code(request, problem_id):
         code = request.POST['code']
 
         # Get test cases for the problem from the database
-        test_cases = Testcase.objects.filter(problem=problem)
+        test_cases = TestCase.objects.filter(problem=problem)
 
         # Compile and evaluate the submission code
         compiler_output = subprocess.run(['python', '-c', code], capture_output=True, text=True)
