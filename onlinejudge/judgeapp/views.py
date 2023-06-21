@@ -1,6 +1,8 @@
 from django.shortcuts import render
 
 # Create your views here.
+
+#Register and login views incomplete
 # judgeapp/views.py
 
 from django.shortcuts import render, redirect
@@ -29,6 +31,11 @@ def register(request):
 
     return render(request, 'register.html', {'form': form})
 
+
+
+
+#Problem list page mostly correct and done
+
 # judgeapp/views.py
 
 from django.shortcuts import render
@@ -39,6 +46,12 @@ def problem_list(request):
     problems = Problem.objects.all()
 
     return render(request, 'problem_list.html', {'problems': problems})
+
+
+
+
+
+#problem detail and submit need to see in deep
 
 # judgeapp/views.py
 
@@ -56,6 +69,81 @@ from .models import Problem
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Problem, Submission
 
+from django.shortcuts import render, redirect
+
+#def problem_detail(request, problem_id):
+#    # Retrieve the problem with the specified ID or return a 404 error
+#    problem = get_object_or_404(Problem, id=problem_id)
+#
+#    if request.method == 'POST':
+#        code = request.POST['code']
+#
+#        # Save the code submission to the session
+#        request.session['code_submission'] = code
+#
+#        # Redirect to the submit code page
+#        return redirect('submit_code', problem_id=problem_id)
+#
+#    return render(request, 'problem_detail.html', {'problem': problem})
+
+
+
+
+#this is better one...i.e new code
+from django.shortcuts import render, redirect
+
+def problem_detail(request, problem_id):
+    # Retrieve the problem with the specified ID or return a 404 error
+    problem = get_object_or_404(Problem, id=problem_id)
+
+    if request.method == 'POST':
+        code = request.POST['code']
+
+        # Redirect to the submit code page with the code as a URL parameter
+        return redirect('submit_code', problem_id=problem_id, code=code)
+
+    return render(request, 'problem_detail.html', {'problem': problem})
+
+import subprocess
+
+def submit_code(request, problem_id, code):
+    # Retrieve the problem with the specified ID or return a 404 error
+    problem = get_object_or_404(Problem, id=problem_id)
+
+    if request.method == 'POST':
+        # Save the code submission to the database
+        submission = Submission(problem=problem, code=code)
+        submission.save()
+
+        # Get the test cases for the problem from the database
+        test_cases = TestCase.objects.filter(problem=problem)
+
+        # Evaluate the submission code using a local compiler
+        compiler_result = subprocess.run(['python', '-c', code], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+        # Compare the compiler output with the expected test case outputs
+        verdict = 'Passed'  # Assume the submission passes initially
+        for test_case in test_cases:
+            expected_output = test_case.output.strip()
+            if compiler_result.stdout.strip() != expected_output:
+                verdict = 'Failed'
+                break
+
+        # Save the verdict for the submission in the database
+        submission.verdict = verdict
+        submission.save()
+
+        # Redirect to the leaderboard page or any other relevant page
+        return redirect('leaderboard')
+
+    return render(request, 'submit_code.html', {'problem': problem})
+
+
+
+
+
+
+#earlier chatgpt code
 def problem_detail(request, problem_id):
     # Retrieve the problem with the specified ID or return a 404 error
     problem = get_object_or_404(Problem, id=problem_id)
@@ -72,8 +160,6 @@ def problem_detail(request, problem_id):
 
     return render(request, 'problem_detail.html', {'problem': problem})
 
-
-import subprocess
 
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Problem, Submission, TestCase
@@ -106,6 +192,13 @@ def submit_code(request, problem_id):
         return redirect('leaderboard')
 
     return render(request, 'problem_detail.html', {'problem': problem})
+
+
+
+
+
+
+#leaderboard page
 
 # judgeapp/views.py
 

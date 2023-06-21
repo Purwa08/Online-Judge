@@ -1,3 +1,32 @@
+<!--
+{% extends 'base.html' %}
+
+{% block title %}Problem List{% endblock %}
+
+{% block content %}
+<h2>Problem List</h2>
+
+<ul>
+    {% for problem in problems %}
+    <li>
+        <h3>{{ problem.title }}</h3>
+        <p>{{ problem.description }}</p>
+        <p>Difficulty: {{ problem.difficulty }}</p>
+        <form method="POST" action="{% url 'submit_code' problem.id %}">
+            {% csrf_token %}
+            <textarea name="code" rows="10" cols="50"></textarea>
+            <button type="submit">Submit</button>
+        </form>
+    </li>
+    {% empty %}
+    <li>No problems available.</li>
+    {% endfor %}
+</ul>
+{% endblock %}
+-->
+
+
+
 <!-- templates/problem_list.html -->
 <!-- 
 {% for problem in problems %}
@@ -12,7 +41,7 @@
 
 
 <!-- templates/problem_list.html -->
-
+<!--
 <h2>Problem List</h2>
 
 <ul>
@@ -21,7 +50,7 @@
             <h3>{{ problem.title }}</h3>
             <p>{{ problem.description }}</p>
             <p>Difficulty: {{ problem.difficulty }}</p>
-            <!-- Additional problem details as needed -->
+           
             <form method="GET" action="{% url 'problem_detail' problem.id %}">
                 <button type="submit">Submit</button>
             </form>
@@ -30,3 +59,27 @@
         <li>No problems available.</li>
     {% endfor %}
 </ul>
+
+-->
+
+{% extends 'base.html' %}
+
+{% block title %}CODE IT{% endblock %}
+
+{% block content %}
+<h2>Problem List</h2>
+
+{% if problems %}
+  <ul>
+    {% for problem in problems %}
+      <li>
+        <h2>Problem ID: {{ problem.id }}</h2>
+        <h3>Title: {{ problem.title}}</h3>
+        <a href="{% url 'problem_detail' problem_id=problem.id %}">View Details</a>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>No problems available.</p>
+{% endif %}
+

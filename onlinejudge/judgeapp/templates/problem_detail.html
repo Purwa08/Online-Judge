@@ -1,11 +1,10 @@
-<!-- templates/problem_detail.html -->
+<!-- templates/problem_detail.html 
 
 <div>
     <h3>{{ problem.title }}</h3>
     <p>{{ problem.description }}</p>
     <p>Difficulty: {{ problem.difficulty }}</p>
-    <!-- Additional problem details as needed -->
-
+    
     <form method="POST" action="{% url 'submit_code' problem.id %}">
         {% csrf_token %}
         <textarea name="code" rows="10" cols="50" placeholder="Enter your code"></textarea>
@@ -13,5 +12,25 @@
         <input type="submit" value="Submit">
     </form>
 </div>
+-->
 
+
+
+<h1>Problem Details</h1>
+<h3></h3>
+<p>Problem ID: {{ problem.id }}</p>
+<p>Description: {{ problem.description }}</p>
+
+<!-- Code submission form -->
+<form method="POST" action="{% url 'problem_detail' problem_id=problem.id %}">
+  {% csrf_token %}
+  <textarea name="code" rows="10" cols="50"></textarea>
+  <div class="form-group">
+    <label >Select Language</label>
+    <select name="language" id="language" class="form-select">
+      <option >C++</option>
+    </select>
+  </div> 
+  <input type="submit" value="Submit Code">
+</form>
 
