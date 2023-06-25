@@ -26,7 +26,6 @@
 -->
 
 
-
 <!-- templates/problem_list.html -->
 <!-- 
 {% for problem in problems %}
@@ -60,7 +59,24 @@
     {% endfor %}
 </ul>
 
+
+{% if problems %}
+<ul>
+    {% for problem in problems %}
+    <li>
+        <h2>Problem ID: {{ problem.id }}</h2>
+        <h3>Title: {{ problem.title}}</h3>
+        <a href="{% url 'problem_detail' problem_id=problem.id %}">View Details</a>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p>No problems available.</p>
+{% endif %}
+
 -->
+
+
 
 {% extends 'base.html' %}
 
@@ -69,17 +85,26 @@
 {% block content %}
 <h2>Problem List</h2>
 
-{% if problems %}
-  <ul>
-    {% for problem in problems %}
-      <li>
-        <h2>Problem ID: {{ problem.id }}</h2>
-        <h3>Title: {{ problem.title}}</h3>
-        <a href="{% url 'problem_detail' problem_id=problem.id %}">View Details</a>
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p>No problems available.</p>
-{% endif %}
+<table>
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Difficulty Level</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% if problems %}
+        {% for problem in problems %}
+        <tr>
+            <td><a href="{% url 'problem_detail' problem_id=problem.id %}">{{ problem.title }}</a></td>
+            <td>{{ problem.difficulty }}</td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <p>No problems available.</p>
+        {% endif %}
+    </tbody>
+</table>
+{% endblock %}
+
 

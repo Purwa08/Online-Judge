@@ -14,14 +14,54 @@
 </div>
 -->
 
+{% extends 'base.html' %}
 
+{% block title%}
+<title>Problems-{{problem.id}}</title>
+{% endblock title %}
+
+{% block content %}
+
+<h2>{{ problem.title }}</h2>
+<p>{{problem.description}}</p>
+<h5>{{problem.difficulty}}</h5>
+
+<form action="{% url 'submit_code' problem.id %}" method="POST">
+  {% csrf_token %}
+          <fieldset>
+            <div class="form-group">
+              <textarea data-editor="terminal" name="code" cols="85" rows="20" id="editor"></textarea>
+            </div>
+            <div class="form-group">
+              <label >Select Language</label>
+              <select name="language" id="language" class="form-select">
+                <option value="C++">C++</option>
+                <option value="C">C</option>
+                <option value="Python3">Python3</option>
+                <option value="Python2">Python2</option>
+                <option value="Java">Java</option>
+              </select>
+            </div> 
+            <br>
+            <button id="submit" type="submit" name="submit">Submit</button>
+            <br>
+          </fieldset>  
+  </form>
+
+{% endblock %}
+
+
+
+
+<!--
+{% block content %}
 
 <h1>Problem Details</h1>
 <h3></h3>
 <p>Problem ID: {{ problem.id }}</p>
 <p>Description: {{ problem.description }}</p>
 
-<!-- Code submission form -->
+ Code submission form 
 <form method="POST" action="{% url 'problem_detail' problem_id=problem.id %}">
   {% csrf_token %}
   <textarea name="code" rows="10" cols="50"></textarea>
@@ -34,3 +74,4 @@
   <input type="submit" value="Submit Code">
 </form>
 
+-->
