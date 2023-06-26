@@ -1,30 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>{% block title %}Online Judge{% endblock %}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CODE IT{% endblock %}</title>
+    
+    <style>
+        /* Global Styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        
+        /* Header Styles */
+        header {
+            background-color: #333;
+            color: #fff;
+            padding: 20px;
+        }
+        
+        h1 {
+            margin: 0;
+        }
+        
+        /* Main Content Styles */
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        /* Footer Styles */
+        footer {
+            background-color: #333;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        /* Navigation Styles */
+        nav {
+            margin-bottom: 20px;
+        }
+        
+        nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        nav ul li {
+            display: inline;
+        }
+        
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+            padding: 10px;
+        }
+    </style>
 </head>
-
 <body>
     <header>
+        <h1>CODE IT</h1>
         <nav>
             <ul>
-                <li><a href="{% url 'problem_list' %}">Problem List</a></li>
-                
-                <!-- Add other navigation links as needed -->
+                <li><a href="{% url 'problem_list' %}">Problems</a></li>
+                <li><a href="{% url 'leaderboard' %}">Leaderboard</a></li>
+                {% if user.is_authenticated %}
+                    <li><a href="{% url 'logout' %}">Logout</a></li>
+                {% else %}
+                    <li><a href="{% url 'register' %}">Register</a></li>
+                {% endif %}
             </ul>
         </nav>
     </header>
-
-    <div class="content">
+    
+    <div class="container">
         {% block content %}
-        <!-- Default content here -->
+        <!-- Default content if not overridden by child template -->
+        <h2>Welcome to my website!</h2>
         {% endblock %}
     </div>
-
+    
     <footer>
-        <!-- Footer content here -->
+        &copy; 2023 My Website. All rights reserved.
     </footer>
 </body>
 </html>
-
-

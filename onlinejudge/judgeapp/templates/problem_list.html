@@ -1,110 +1,59 @@
-<!--
 {% extends 'base.html' %}
 
-{% block title %}Problem List{% endblock %}
-
 {% block content %}
-<h2>Problem List</h2>
+    <h1>CODE IT</h1>
 
-<ul>
-    {% for problem in problems %}
-    <li>
-        <h3>{{ problem.title }}</h3>
-        <p>{{ problem.description }}</p>
-        <p>Difficulty: {{ problem.difficulty }}</p>
-        <form method="POST" action="{% url 'submit_code' problem.id %}">
-            {% csrf_token %}
-            <textarea name="code" rows="10" cols="50"></textarea>
-            <button type="submit">Submit</button>
-        </form>
-    </li>
-    {% empty %}
-    <li>No problems available.</li>
-    {% endfor %}
-</ul>
-{% endblock %}
--->
+    <h2>Problem List</h2>
 
+    <table class="problem-table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Difficulty Level</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if problems %}
+                {% for problem in problems %}
+                    <tr>
+                        <td><a href="{% url 'problem_detail' problem_id=problem.id %}">{{ problem.title }}</a></td>
+                        <td>{{ problem.difficulty }}</td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="2"><p>No problems available.</p></td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
 
-<!-- templates/problem_list.html -->
-<!-- 
-{% for problem in problems %}
-    <div>
-        <h3>{{ problem.title }}</h3>
-        <p>{{ problem.description }}</p>
-        <p>Difficulty: {{ problem.difficulty }}</p>
-    </div>
-{% empty %}
-    <p>No problems available.</p>
-{% endfor %} -->
+    <style>
+        /* CSS styling for the problem table */
+        .problem-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
 
+        .problem-table th, .problem-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
 
-<!-- templates/problem_list.html -->
-<!--
-<h2>Problem List</h2>
+        .problem-table th {
+            background-color: #f2f2f2;
+        }
 
-<ul>
-    {% for problem in problems %}
-        <li>
-            <h3>{{ problem.title }}</h3>
-            <p>{{ problem.description }}</p>
-            <p>Difficulty: {{ problem.difficulty }}</p>
-           
-            <form method="GET" action="{% url 'problem_detail' problem.id %}">
-                <button type="submit">Submit</button>
-            </form>
-        </li>
-    {% empty %}
-        <li>No problems available.</li>
-    {% endfor %}
-</ul>
+        .problem-table a {
+            color: #007bff;
+            text-decoration: none;
+        }
 
-
-{% if problems %}
-<ul>
-    {% for problem in problems %}
-    <li>
-        <h2>Problem ID: {{ problem.id }}</h2>
-        <h3>Title: {{ problem.title}}</h3>
-        <a href="{% url 'problem_detail' problem_id=problem.id %}">View Details</a>
-    </li>
-    {% endfor %}
-</ul>
-{% else %}
-<p>No problems available.</p>
-{% endif %}
-
--->
-
-
-
-{% extends 'base.html' %}
-
-{% block title %}CODE IT{% endblock %}
-
-{% block content %}
-<h2>Problem List</h2>
-
-<table>
-    <thead>
-        <tr>
-            <th>Title</th>
-            <th>Difficulty Level</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% if problems %}
-        {% for problem in problems %}
-        <tr>
-            <td><a href="{% url 'problem_detail' problem_id=problem.id %}">{{ problem.title }}</a></td>
-            <td>{{ problem.difficulty }}</td>
-        </tr>
-        {% endfor %}
-        {% else %}
-        <p>No problems available.</p>
-        {% endif %}
-    </tbody>
-</table>
+        .problem-table a:hover {
+            text-decoration: underline;
+        }
+    </style>
 {% endblock %}
 
 

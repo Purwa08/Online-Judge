@@ -17,5 +17,5 @@ class CreateUserForm(UserCreationForm):
 class CodeForm(ModelForm):
     class Meta:
         model = Submission
-        fields = ['code']
-        widgets = {'code' : forms.Textarea()}
+        fields = ['user_code']
+        widgets = {'user_code' : forms.Textarea()} 

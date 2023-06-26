@@ -11,9 +11,13 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """ 
 
 from pathlib import Path
+import os
+from django.contrib.messages import constants as messages
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+FILES_DIR = os.path.abspath(os.path.join(BASE_DIR,'usercodes'))
 
 
 # Quick-start development settings - unsuitable for production
