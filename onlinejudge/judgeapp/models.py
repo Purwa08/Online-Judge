@@ -1,27 +1,28 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser
+from django.contrib.auth.models import AbstractUser
 
 # Create your models here.
 # judgeapp/models.py
 
 ###############################################################################################################################
 
-class User(AbstractBaseUser):
-    first_name = models.CharField(max_length=50,default="")
-    last_name = models.CharField(max_length=50,default="")
-    username = models.CharField(max_length=100)
-    email = models.EmailField(unique=True)
-    password = models.CharField(max_length=128)
-    num_problems_solved = models.IntegerField(default=0)
+class User(AbstractUser):
+    email = models.EmailField(unique=True, default="")
     score = models.IntegerField(default=0)
-    USERNAME_FIELD = 'username'
-    # Additional fields as needed
+    num_problems_solved = models.IntegerField(default=0)
+    full_name = models.CharField(max_length=50, default="")
 
     class Meta:
         ordering = ['-score']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.full_name = self.first_name+" "+self.last_name
+
     def __str__(self):
         return self.username
+
+
 
 ###############################################################################################################################
 
