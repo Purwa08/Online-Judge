@@ -4,9 +4,11 @@ from django import forms
 from django.forms import ModelForm
 from .models import Submission
 from django.contrib.auth.forms import UserCreationForm
-from .models import User
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
 class CreateUserForm(UserCreationForm):
+    
     email = forms.EmailField(label='Email',widget=forms.TextInput(attrs={"placeholder":"Email","id":"email"})) 
     class Meta:
         model = User

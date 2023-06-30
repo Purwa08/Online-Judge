@@ -41,8 +41,12 @@
         footer {
             background-color: #333;
             color: #fff;
-            padding: 20px;
+            padding: 10px;
             text-align: center;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
         }
         
         /* Navigation Styles */
@@ -85,13 +89,13 @@
     
     <div class="container">
         {% block content %}
-        <!-- Default content if not overridden by child template -->
+        
         <h2>Welcome to my website!</h2>
         {% endblock %}
     </div>
     
     <footer>
-        &copy; 2023 My Website. All rights reserved.
+        &copy; 
     </footer>
 </body>
 </html>

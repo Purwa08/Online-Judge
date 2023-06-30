@@ -1,13 +1,14 @@
 ###############################################################################################################################
 
 #Registration page for new user
+from django.contrib.auth import get_user_model
 
-from .models import User
 from django.shortcuts import render, redirect
 from .forms import CreateUserForm
 from django.contrib import messages
 
 def register(request):
+    User = get_user_model()
     if request.method == 'POST':
         form = CreateUserForm(request.POST)
         if form.is_valid():
@@ -96,6 +97,7 @@ from .forms import CodeForm
 
 @login_required(login_url='login')
 def problem_detail(request, problem_id):
+    User = get_user_model()
     user_id=request.user.id
     problem = get_object_or_404(Problem, id=problem_id)
     user=User.objects.get(id=user_id)
@@ -118,9 +120,14 @@ from datetime import datetime
 from time import time
 from django.contrib.auth.models import User
 from django.contrib.auth import get_user
+from judgeapp.models import User
+from pathlib import Path
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 @login_required(login_url='login')
 def submit_code(request,problem_id):
+    User=get_user_model()
     if request.method == 'POST':
         # setting docker-client
         docker_client = docker.from_env()
@@ -129,8 +136,11 @@ def submit_code(request,problem_id):
         problem = Problem.objects.get(id=problem_id)
         testcase = TestCase.objects.get(problem_id=problem_id)
         #replacing \r\n by \n in original output to compare it with the usercode output
-        testcase.expected_output = testcase.expected_output.replace('\r\n','\n').strip() 
-
+        #testcase.expected_output = testcase.expected_output.replace('\r\n','\n').strip() 
+        
+        #Debugging
+        print("Input:", testcase.input_data)
+        print("Expected Output:", testcase.expected_output)
         # score of a problem
         if problem.difficulty=="Easy":
             score = 10
@@ -145,16 +155,17 @@ def submit_code(request,problem_id):
         res = ""
         run_time = 0
 
-        user = User.objects.get(username=request.user)
+        
+        user = get_user_model().objects.get(username=request.user)
         
         # extract data from form
         form = CodeForm(request.POST)
         user_code = ''
         if form.is_valid():
             user_code = form.cleaned_data.get('user_code')
-            user_code = user_code.replace('\r\n','\n').strip()
+            #user_code = user_code.replace('\r\n','\n').strip()
             
-        language = request.POST['language']
+        language = request.POST.get('language')
         submission = Submission(user=user, problem=problem, timestamp=datetime.now(), 
                                     language=language, user_code=user_code)
         submission.save()
@@ -164,11 +175,11 @@ def submit_code(request,problem_id):
         # if user code is in C++
         if language == "C++":
             extension = ".cpp"
-            cont_name = "oj-cpp"
-            compile = f"g++ -o {filename} {filename}.cpp"
-            clean = f"{filename} {filename}.cpp"
+            cont_name = "my-gcc"
+            compile = f"g++ -o {filename}.exe {filename}.cpp"
+            clean = f"{filename}.exe {filename}.cpp"
             docker_img = "gcc:latest"
-            exe = f"./{filename}"
+            exe = f"{filename}.exe"
             
         elif language == "C":
             extension = ".c"
@@ -178,37 +189,17 @@ def submit_code(request,problem_id):
             docker_img = "gcc:latest"
             exe = f"./{filename}"
 
-        elif language == "Python3":
-            extension = ".py"
-            cont_name = "oj-py3"
-            compile = "python3"
-            clean = f"{filename}.py"
-            docker_img = "python3"
-            exe = f"python {filename}.py"
-        
-        elif language == "Python2":
-            extension = ".py"
-            cont_name = "oj-py2"
-            compile = "python2"
-            clean = f"{filename}.py"
-            docker_img = "python2"
-            exe = f"python {filename}.py"
-
-        elif language == "Java":
-            filename = "Main"
-            extension = ".java"
-            cont_name = "oj-java"
-            compile = f"javac {filename}.java"
-            clean = f"{filename}.java {filename}.class"
-            docker_img = "openjdk"
-            exe = f"java {filename}"
-
+        #debugging
+        print("User Code:", user_code)
 
         file = filename + extension
-        filepath = settings.FILES_DIR + "/" + file
+        filepath = os.path.join(BASE_DIR, 'usercodes', file)
         code = open(filepath,"w")
         code.write(user_code)
         code.close()
+
+        print("Language:", language)
+        print("Submission Filepath:", filepath)
 
         # checking if the docker container is running or not
         try:
@@ -226,9 +217,13 @@ def submit_code(request,problem_id):
 
         # compiling the code
         cmp = subprocess.run(f"docker exec {cont_name} {compile}", capture_output=True, shell=True)
+        print("Compilation Output:")
+        print(cmp.stdout.decode('utf-8'))
+        print(cmp.stderr.decode('utf-8'))
         if cmp.returncode != 0:
             verdict = "Compilation Error"
             subprocess.run(f"docker exec {cont_name} rm {file}",shell=True)
+            print("Compilation Error occurred.")
 
         else:
             # running the code on given input and taking the output in a variable in bytes
@@ -238,16 +233,21 @@ def submit_code(request,problem_id):
                                                 capture_output=True, timeout=problem.time_limit, shell=True)
                 run_time = time()-start
                 subprocess.run(f"docker exec {cont_name} rm {clean}",shell=True)
+                print("Execution Output:")
+                print(res.stdout.decode('utf-8'))
+                print(res.stderr.decode('utf-8'))
             except subprocess.TimeoutExpired:
                 run_time = time()-start
                 verdict = "Time Limit Exceeded"
                 subprocess.run(f"docker container kill {cont_name}", shell=True)
                 subprocess.run(f"docker start {cont_name}",shell=True)
                 subprocess.run(f"docker exec {cont_name} rm {clean}",shell=True)
+                print("Time Limit Exceeded.")
 
 
             if verdict != "Time Limit Exceeded" and res.returncode != 0:
                 verdict = "Runtime Error"
+                print("Runtime Error occurred.")
                 
 
         user_stderr = ""
@@ -263,10 +263,13 @@ def submit_code(request,problem_id):
             if str(user_stdout)==str(testcase.expected_output):
                 verdict = "Accepted"
 
-
+        print("User Output:", user_stdout)
+        print("User Error:", user_stderr)
+        print("Verdict:", verdict)
         # creating Solution class objects and showing it on leaderboard
         #user = get_user(request)
-        user = User.objects.get(username=request.user)
+        
+        user = get_user_model().objects.get(username=request.user)
         previous_verdict = Submission.objects.filter(user=user.id, problem=problem, verdict="Accepted")
         if len(previous_verdict)==0 and verdict=="Accepted":
             user.score += score
