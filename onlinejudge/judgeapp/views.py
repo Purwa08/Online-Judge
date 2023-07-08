@@ -129,14 +129,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 def submit_code(request,problem_id):
     User=get_user_model()
     if request.method == 'POST':
-        # setting docker-client
-        docker_client = docker.from_env()
-        Running = "running"
 
+        # Configure Docker client
+        docker_client = docker.from_env()
+
+        user = get_user_model().objects.get(username=request.user)
         problem = Problem.objects.get(id=problem_id)
         testcase = TestCase.objects.get(problem_id=problem_id)
         #replacing \r\n by \n in original output to compare it with the usercode output
-        #testcase.expected_output = testcase.expected_output.replace('\r\n','\n').strip() 
+        testcase.expected_output = testcase.expected_output.replace('\r\n','\n').strip() 
         
         #Debugging
         print("Input:", testcase.input_data)
@@ -149,122 +150,125 @@ def submit_code(request,problem_id):
         else:
             score = 50
 
-
-        #setting verdict to wrong by default
-        verdict = "Wrong Answer" 
-        res = ""
-        run_time = 0
-
-        
-        user = get_user_model().objects.get(username=request.user)
-        
         # extract data from form
         form = CodeForm(request.POST)
         user_code = ''
         if form.is_valid():
             user_code = form.cleaned_data.get('user_code')
+            print(user_code)
             #user_code = user_code.replace('\r\n','\n').strip()
-            
+        else:
+            print(form.errors)   
+
         language = request.POST.get('language')
         submission = Submission(user=user, problem=problem, timestamp=datetime.now(), 
-                                    language=language, user_code=user_code)
+                                language=language, user_code=user_code)
         submission.save()
+        print(submission.user)  # Verify user object
+        print(submission.problem)  # Verify problem object
 
         filename = str(submission.id)
 
+        # # User code and file information
+        
         # if user code is in C++
         if language == "C++":
             extension = ".cpp"
             cont_name = "my-gcc"
-            compile = f"g++ -o {filename}.exe {filename}.cpp"
+            compile_cmd = f"g++ -o {filename}.exe {filename}.cpp"
             clean = f"{filename}.exe {filename}.cpp"
             docker_img = "gcc:latest"
-            exe = f"{filename}.exe"
+            exe_cmd = f"./{filename}.exe"
             
         elif language == "C":
             extension = ".c"
-            cont_name = "oj-c"
-            compile = f"gcc -o {filename} {filename}.c"
+            cont_name = "my-gcc"
+            compile_cmd = f"gcc -o {filename} {filename}.c"
             clean = f"{filename} {filename}.c"
             docker_img = "gcc:latest"
-            exe = f"./{filename}"
-
-        #debugging
-        print("User Code:", user_code)
+            exe_cmd = f"./{filename}"
 
         file = filename + extension
-        filepath = os.path.join(BASE_DIR, 'usercodes', file)
-        code = open(filepath,"w")
-        code.write(user_code)
-        code.close()
 
-        print("Language:", language)
-        print("Submission Filepath:", filepath)
+        # Set file paths
+        usercode_filepath = os.path.join(BASE_DIR, 'usercodes', file)
+        container_filepath = f'/{file}'
 
-        # checking if the docker container is running or not
+        # Save user code to file
+        with open(usercode_filepath, 'w') as code_file:
+            code_file.write(user_code)
+    
+        # Check if the Docker container is running
         try:
             container = docker_client.containers.get(cont_name)
             container_state = container.attrs['State']
-            container_is_running = (container_state['Status'] == Running)
+            container_is_running = container_state['Status'] == 'running'
             if not container_is_running:
-                subprocess.run(f"docker start {cont_name}",shell=True)
+                container.start()
         except docker.errors.NotFound:
-            subprocess.run(f"docker run -dt --name {cont_name} {docker_img}",shell=True)
+            container = docker_client.containers.run(docker_img, detach=True, name=cont_name)
 
+        # Copy the user code file to the Docker container
+        subprocess.run(f'docker cp {usercode_filepath} {cont_name}:{container_filepath}', shell=True)
 
-        # copy/paste the .cpp file in docker container 
-        subprocess.run(f"docker cp {filepath} {cont_name}:/{file}",shell=True)
+        # Compile the code inside the Docker container
+        compile_result = subprocess.run(f'docker exec {cont_name} {compile_cmd}', capture_output=True, shell=True)
+        compile_stdout = compile_result.stdout.decode('utf-8')
+        compile_stderr = compile_result.stderr.decode('utf-8')
 
-        # compiling the code
-        cmp = subprocess.run(f"docker exec {cont_name} {compile}", capture_output=True, shell=True)
-        print("Compilation Output:")
-        print(cmp.stdout.decode('utf-8'))
-        print(cmp.stderr.decode('utf-8'))
-        if cmp.returncode != 0:
-            verdict = "Compilation Error"
-            subprocess.run(f"docker exec {cont_name} rm {file}",shell=True)
-            print("Compilation Error occurred.")
-
+        if compile_result.returncode != 0:
+            # Compilation failed
+            verdict = 'Compilation Error'
+            print('Compilation Output:')
+            print(compile_stdout)
+            print(compile_stderr)
         else:
-            # running the code on given input and taking the output in a variable in bytes
-            start = time()
-            try:
-                res = subprocess.run(f"docker exec {cont_name} sh -c 'echo \"{testcase.input_data}\" | {exe}'",
-                                                capture_output=True, timeout=problem.time_limit, shell=True)
-                run_time = time()-start
-                subprocess.run(f"docker exec {cont_name} rm {clean}",shell=True)
-                print("Execution Output:")
-                print(res.stdout.decode('utf-8'))
-                print(res.stderr.decode('utf-8'))
-            except subprocess.TimeoutExpired:
-                run_time = time()-start
-                verdict = "Time Limit Exceeded"
-                subprocess.run(f"docker container kill {cont_name}", shell=True)
-                subprocess.run(f"docker start {cont_name}",shell=True)
-                subprocess.run(f"docker exec {cont_name} rm {clean}",shell=True)
-                print("Time Limit Exceeded.")
+            # Compilation successful, execute the code
+            verdict = 'Accepted'
+            print('Execution Output:')
 
+            # Retrieve test cases for the problem
+            test_cases = TestCase.objects.filter(problem_id=problem_id)
 
-            if verdict != "Time Limit Exceeded" and res.returncode != 0:
-                verdict = "Runtime Error"
-                print("Runtime Error occurred.")
+            # Iterate over the test cases
+            for test_case in test_cases:
+                input_data = test_case.input_data.strip()
+                expected_output = test_case.expected_output.strip()
+
+                # Execute the code with the current test case input
+                start = time()
+                timeout=problem.time_limit
+                execute_result = subprocess.run(f'docker exec {cont_name} sh -c "echo \'{input_data}\' | {exe_cmd}"', capture_output=True, shell=True)
+                execute_stdout = execute_result.stdout.decode('utf-8').strip()
+                execute_stderr = execute_result.stderr.decode('utf-8').strip()
+
+                if execute_result.returncode != 0:
+                    # Runtime error occurred
+                    verdict = 'Runtime Error'
+                    print(execute_stderr)
+                    break
+
+                if execute_result.returncode == 124:
+                    # Time limit exceeded
+                    verdict = 'Time Limit Exceeded'
+                    print(f'Test Case {test_case.id}: Time Limit Exceeded')
+                    break
                 
+                if execute_stdout != expected_output:
+                    # Wrong answer
+                    verdict = 'Wrong Answer'
+                    print(f'Test Case {test_case.id}: Failed')
+                    print(f'Expected Output: {expected_output}')
+                    print(f'Actual Output: {execute_stdout}')
+                    break
+                
+                # Print the output for the current test case
+                print(f'Test Case {test_case.id}: Passed')
+                print(f'Output: {execute_stdout}')
 
-        user_stderr = ""
-        user_stdout = ""
-        if verdict == "Compilation Error":
-            user_stderr = cmp.stderr.decode('utf-8')
         
-        elif verdict == "Wrong Answer":
-            user_stdout = res.stdout.decode('utf-8')
-            if str(user_stdout)==str(testcase.expected_output):
-                verdict = "Accepted"
-            testcase.expected_output += '\n' # added extra line to compare user output having extra ling at the end of their output
-            if str(user_stdout)==str(testcase.expected_output):
-                verdict = "Accepted"
-
-        print("User Output:", user_stdout)
-        print("User Error:", user_stderr)
+        print("User Output:", execute_stdout)
+        print("User Error:", execute_stderr)
         print("Verdict:", verdict)
         # creating Solution class objects and showing it on leaderboard
         #user = get_user(request)
@@ -277,11 +281,14 @@ def submit_code(request,problem_id):
             user.save()
 
         submission.verdict = verdict
-        submission.user_stdout = user_stdout
-        submission.user_stderr = user_stderr
-        submission.runtime = run_time
+        submission.user_stdout = execute_stdout
+        submission.user_stderr = execute_stderr
+        #submission.runtime = run_time
         submission.save()
-        os.remove(filepath)
+
+        # Cleanup: remove the user code file and stop the Docker container if it was started here
+        os.remove(usercode_filepath)
+
         context={'verdict':verdict}
         return render(request,'submit_code.html',context)
 
