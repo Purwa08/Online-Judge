@@ -1,27 +1,103 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<p></p>
-<div style="text-align: center; margin: 50px;">
-    <div style="width: 20rem; height: 20rem; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2); border-radius: 10px; padding: 20px;">
+<style>
+    body,
+    html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #333;
+        color: #fff;
+    }
+    .container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+    }
+    .user_card {
+        width: 20rem;
+        background:#333;
+        color: #fff;
+        position: relative;
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+        padding: 20px;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        -webkit-box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        -moz-box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        border-radius: 10px;
+    }
+    .verdict {
+        text-align: center;
+        font-weight: bold;
+        font-size: 20px;
+    }
+    .test-case-details {
+        text-align: left;
+        margin-top: 20px;
+    }
+    .test-case-details h4 {
+        font-weight: bold;
+    }
+    .test-case-details ul {
+        padding-left: 20px;
+        list-style-type: none;
+    }
+    .test-case-details li {
+        margin-bottom: 10px;
+    }
+    .test-case-details li:last-child {
+        margin-bottom: 0;
+    }
+</style>
+<div class="container">
+    <div class="user_card">
         <div style="margin-bottom: 20px;">
-            <h3 style="font-weight: bold;">Judge Verdict</h3>
+            <h3 class="verdict">Judge Verdict</h3>
         </div>
         <div>
             {% if verdict == "Accepted" %}
-            <h4 style="margin-top: 10px;">Accepted :)</h4>
+            <h4 class="verdict">Accepted :)</h4>
 
             {% elif verdict == "Compilation Error" %}
-            <h4 style="margin-top: 10px;">Compilation Error :(</h4>
+            <h4 class="verdict">Compilation Error :(</h4>
 
             {% elif verdict == "Runtime Error" %}
-            <h4 style="margin-top: 10px;">Runtime Error :(</h4>
+            <h4 class="verdict">Runtime Error :(</h4>
 
             {% elif verdict == "Time Limit Exceeded" %}
-            <h4 style="margin-top: 10px;">Time Limit Exceeded :(</h4>
+            <h4 class="verdict">Time Limit Exceeded :(</h4>
 
             {% else %}
-            <h4 style="margin-top: 10px;">Wrong Answer :(</h4>
+            <h4 class="verdict">Wrong Answer :(</h4>
+            {% endif %}
+            <br>
+            {% if num_passed is not None and num_failed is not None %}
+            <p>Test Cases Passed: {{ num_passed }}</p>
+            <p>Test Cases Failed: {{ num_failed }}</p>
+            {% endif %}
+            {% if num_failed > 0 %}
+                <div class="test-case-details">
+                    <h4>Details for Failed Test Cases:</h4>
+                    <ul>
+                        {% for detail in verdict_details %}
+                            {% if detail.verdict != "Accepted" %}
+                                <li>
+                                    Test Case {{ detail.test_case_id }}: {{ detail.verdict }}
+                                    {% if detail.error_message %}
+                                        <br>Error Message: {{ detail.error_message }}
+                                    {% elif detail.expected_output and detail.actual_output %}
+                                        <br>Expected Output: {{ detail.expected_output }}
+                                        <br>Actual Output: {{ detail.actual_output }}
+                                    {% endif %}
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
             {% endif %}
         </div>
     </div>

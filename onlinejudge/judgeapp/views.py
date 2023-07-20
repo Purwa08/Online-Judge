@@ -135,13 +135,13 @@ def submit_code(request,problem_id):
 
         user = get_user_model().objects.get(username=request.user)
         problem = Problem.objects.get(id=problem_id)
-        testcase = TestCase.objects.get(problem_id=problem_id)
+        
         #replacing \r\n by \n in original output to compare it with the usercode output
-        testcase.expected_output = testcase.expected_output.replace('\r\n','\n').strip() 
+        #testcase.expected_output = testcase.expected_output.replace('\r\n','\n').strip() 
         
         #Debugging
-        print("Input:", testcase.input_data)
-        print("Expected Output:", testcase.expected_output)
+        #print("Input:", testcase.input_data)
+        #print("Expected Output:", testcase.expected_output)
         # score of a problem
         if problem.difficulty=="Easy":
             score = 10
@@ -188,11 +188,31 @@ def submit_code(request,problem_id):
             docker_img = "gcc:latest"
             exe_cmd = f"./{filename}"
 
+        elif language == "Python3":
+            extension = ".py"
+            cont_name = "oj-py3"
+            compile_cmd = "python3"
+            clean = f"{filename}.py"
+            docker_img = "python:latest"
+            exe_cmd = f"python {filename}.py"
+
+        elif language == "Java":
+            filename = "Main"
+            extension = ".java"
+            cont_name = "oj-java"
+            compile_cmd = f"javac {filename}.java"
+            clean = f"{filename}.java {filename}.class"
+            docker_img = "openjdk:latest"
+            exe_cmd = f"java {filename}"
+
         file = filename + extension
 
         # Set file paths
         usercode_filepath = os.path.join(BASE_DIR, 'usercodes', file)
         container_filepath = f'/{file}'
+        num_passed = 0
+        num_failed = 0
+        verdict_details = [] 
 
         # Save user code to file
         with open(usercode_filepath, 'w') as code_file:
@@ -215,6 +235,8 @@ def submit_code(request,problem_id):
         compile_result = subprocess.run(f'docker exec {cont_name} {compile_cmd}', capture_output=True, shell=True)
         compile_stdout = compile_result.stdout.decode('utf-8')
         compile_stderr = compile_result.stderr.decode('utf-8')
+        execute_stdout=''
+        execute_stderr=''
 
         if compile_result.returncode != 0:
             # Compilation failed
@@ -229,7 +251,7 @@ def submit_code(request,problem_id):
 
             # Retrieve test cases for the problem
             test_cases = TestCase.objects.filter(problem_id=problem_id)
-
+            
             # Iterate over the test cases
             for test_case in test_cases:
                 input_data = test_case.input_data.strip()
@@ -238,6 +260,8 @@ def submit_code(request,problem_id):
                 # Execute the code with the current test case input
                 start = time()
                 timeout=problem.time_limit
+                input_data = input_data.replace('\n', '\\n')  
+                #execute_result = subprocess.run(f'docker exec {cont_name} {exe_cmd} "{input_data}"', capture_output=True, shell=True)
                 execute_result = subprocess.run(f'docker exec {cont_name} sh -c "echo \'{input_data}\' | {exe_cmd}"', capture_output=True, shell=True)
                 execute_stdout = execute_result.stdout.decode('utf-8').strip()
                 execute_stderr = execute_result.stderr.decode('utf-8').strip()
@@ -245,23 +269,33 @@ def submit_code(request,problem_id):
                 if execute_result.returncode != 0:
                     # Runtime error occurred
                     verdict = 'Runtime Error'
+                    num_failed+=1
+                    verdict_details.append({'test_case_id': test_case.id, 'verdict': 'Runtime Error', 'error_message': execute_stderr})
                     print(execute_stderr)
-                    break
+                    
 
-                if execute_result.returncode == 124:
+                elif execute_result.returncode == 124:
                     # Time limit exceeded
                     verdict = 'Time Limit Exceeded'
+                    num_failed+=1
+                    verdict_details.append({'test_case_id': test_case.id, 'verdict': 'Time limit Exceeded', 'error_message': execute_stderr})
                     print(f'Test Case {test_case.id}: Time Limit Exceeded')
-                    break
+                    
                 
-                if execute_stdout != expected_output:
+                elif execute_stdout != expected_output:
                     # Wrong answer
                     verdict = 'Wrong Answer'
+                    num_failed+=1
+                    verdict_details.append({'test_case_id': test_case.id, 'verdict': 'Wrong Answer', 'expected_output': expected_output, 'actual_output': execute_stdout})
                     print(f'Test Case {test_case.id}: Failed')
                     print(f'Expected Output: {expected_output}')
                     print(f'Actual Output: {execute_stdout}')
-                    break
-                
+                    
+                else:
+                    if verdict=='Accepted':
+                        num_passed+=1
+                        verdict_details.append({'test_case_id': test_case.id, 'verdict': 'Accepted'})
+                    
                 # Print the output for the current test case
                 print(f'Test Case {test_case.id}: Passed')
                 print(f'Output: {execute_stdout}')
@@ -288,8 +322,13 @@ def submit_code(request,problem_id):
 
         # Cleanup: remove the user code file and stop the Docker container if it was started here
         os.remove(usercode_filepath)
-
-        context={'verdict':verdict}
+        context = {
+            'verdict': verdict,
+            'num_passed': num_passed,
+            'num_failed': num_failed,
+            'verdict_details': verdict_details,
+                    }
+       
         return render(request,'submit_code.html',context)
 
 
